@@ -2,7 +2,7 @@
   configs:
     project: automatic-medical-coding
     entity: null
-    dir: /experiments
+    dir: /home/mixlab/tabular/icd-coding/experiments
 - name: SaveBestModelCallback
   configs:
     split: val

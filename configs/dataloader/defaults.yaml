@@ -1,6 +1,6 @@
-max_batch_size: 16 #max batch size that can fit in the GPU memory
+max_batch_size: 16 # max batch size that can fit in the GPU memory
 batch_size: 16 # The desired batch size. The code will use accumulated gradients if the batch size is bigger than max_batch_size
-num_workers: 0
+num_workers: 4
 drop_last: true
 pin_memory: false
 

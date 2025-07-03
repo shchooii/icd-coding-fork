@@ -30,6 +30,7 @@ class MultiGrainedFocalLoss(nn.Module):
         prob = prob / (prob.max() + self.eps) 
         weight = torch.pow(-torch.log(prob.clamp_min(self.eps)) + 1.0, 1.0 / 6)
         self.weight = weight.cuda().detach()
+        
 
     @torch.no_grad()                  
     def create_co_occurrence_matrix(self, co_occurrence_matrix):

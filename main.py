@@ -1,6 +1,7 @@
 import logging
 import math
 import os
+import json
 import numpy as np
 from pathlib import Path
 
@@ -96,6 +97,19 @@ def compute_class_stats(
     return pos_freq, neg_freq
 
 
+def get_head_tail_indices(label_transform):
+    with open('/home/mixlab/tabular/icd-coding/files/data/mimiciv_icd10/icd10_longtail_split.json', "r", encoding="utf-8") as jf:
+        ht_dict = json.load(jf)
+
+    head_codes = list(ht_dict["head"].keys())
+    tail_codes = list(ht_dict["tail"].keys())
+
+    head_idx = label_transform.get_indices(head_codes)
+    tail_idx = label_transform.get_indices(tail_codes)
+
+    return head_idx, tail_idx
+
+
 def deterministic() -> None:
     """Run experiment deterministically. There will still be some randomness in the backward pass of the model."""
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":16:8"
@@ -179,10 +193,14 @@ def main(cfg: OmegaConf) -> None:
     
     class_freq, neg_class_freq = compute_class_stats(data, label_transform)
     del data.df
+    
+    head_idx, tail_idx = get_head_tail_indices(label_transform)
 
     model = get_model(
         config=cfg.model, data_info=lookups.data_info, text_encoder=text_encoder, 
-        cls_num_list=cls_num_list, co_occurrence_matrix=co_occurrence_matrix, 
+        cls_num_list=cls_num_list, 
+        head_idx=head_idx, tail_idx=tail_idx,
+        co_occurrence_matrix=co_occurrence_matrix, 
         class_freq=class_freq, neg_class_freq=neg_class_freq
     )
     model.to(device)

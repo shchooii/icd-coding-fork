@@ -179,7 +179,7 @@ class MetricCollection:
                 {
                     metric.name: metric.compute(logits=logits, targets=targets)
                     for metric in self.metrics
-                    if not metric.batch_update
+                    if not metric.batch_update and (metric.name not in metric_dict)
                 }
             )
         self.update_best_metrics(metric_dict)

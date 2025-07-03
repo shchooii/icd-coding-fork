@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - override /model: plm_icd
+  - override /model: plm_icd2
   - override /text_encoder: defaults
   - override /data: mimiciv_icd10
   - override /lr_scheduler: warmup_linear_decay

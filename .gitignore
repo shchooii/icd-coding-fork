@@ -134,7 +134,7 @@ dmypy.json
 
 # files
 data_analysis/files
-files
+files/
 
 # wandb
 wandb
@@ -144,3 +144,4 @@ co_occurrence_matrix.npy
 experiments/
 experiments/*/best_model.pt
 RoBERTa-base-PM-M3-Voc/
+icd10_longtail_split.json

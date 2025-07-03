@@ -1,5 +1,6 @@
 import pandas as pd
 import torch
+import json
 from omegaconf import OmegaConf
 
 from src.data.datatypes import Data, Lookups
@@ -23,7 +24,7 @@ def load_lookups(
     data_info = get_data_info(
         data, text_transform.vocab_size, label_transform.pad_index
     )
-    code_system2code_indices = get_code_system2code_indices(data, label_transform)
+    code_system2code_indices = get_code_system2code_indices(config, data, label_transform)
     split2code_indices = get_split2code_indices(data, label_transform)
 
     return Lookups(
@@ -34,13 +35,24 @@ def load_lookups(
 
 
 def get_code_system2code_indices(
-    data: Data, label_transform: Transform
+    config: OmegaConf, data: Data, label_transform: Transform
 ) -> dict[str, torch.Tensor]:
     code_system2code_indices = {}
     for codesystem, codes in data.code_system2code_counts.items():
         code_system2code_indices[codesystem] = label_transform.get_indices(
             set(codes.keys())
         )
+    with open("/home/mixlab/tabular/icd-coding/files/data/mimiciv_icd10/icd10_longtail_split.json", "r") as f:
+        custom_classes = json.load(f)
+
+    keys = ["head", "medium", "tail"]
+    for key in keys:
+        if key in custom_classes:
+            code_system2code_indices[key] = label_transform.get_indices(
+                set(custom_classes[key].keys())
+            )
+        else:
+            raise ValueError(f"'{key}' is missing in the JSON file.")
     return code_system2code_indices
 
 

@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -15,11 +14,7 @@ def _squeeze_binary_labels(label):
     return squeeze_label
 
 def cross_entropy(pred, label, weight=None, reduction='mean', avg_factor=None):
-    # pred的shape为(n,cls_out_channels)，而label的shape为(n,)
-    # 这里需要把label变成n*1格式，也即选取的pred下标
-    # element-wise losses
 
-    # 这个判定条件不知道什么意思
     if label.size(-1) != pred.size(0):
         label = _squeeze_binary_labels(label)
 
@@ -64,18 +59,12 @@ def binary_cross_entropy(pred,
                          avg_factor=None):
     if pred.dim() != label.dim():
         label, weight = _expand_binary_labels(label, weight, pred.size(-1))
-    # pred的shape为(n,cls_out_channels)，而label和weight的shape为(n,)
-    # 所以我们要对label和weight进行one-hot编码，使得shape一致，皆为(n,cls_out_channels)
-    
-    # weighted element-wise losses
     if weight is not None:
         weight = weight.float()
 
     loss = F.binary_cross_entropy_with_logits(
         pred, label.float(), weight, reduction='none')
-    # 执行weight 但是没有reduction
     loss = weight_reduce_loss(loss, reduction=reduction, avg_factor=avg_factor)
-    # 没有weight,执行自定义reduction
     return loss
 
 

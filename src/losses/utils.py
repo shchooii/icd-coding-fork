@@ -1,7 +1,7 @@
 import functools
 
 import torch.nn.functional as F
-
+import numpy as np
 
 def reduce_loss(loss, reduction):
     """Reduce loss as specified.
@@ -95,3 +95,64 @@ def weighted_loss(loss_func):
         return loss
 
     return wrapper
+
+
+def average_precision(output, target):
+    epsilon = 1e-8
+
+    
+    # sort examples
+    indices = output.argsort()[::-1]
+    # Computes prec@i
+    total_count_ = np.cumsum(np.ones((len(output), 1)))
+    # print(111111111)
+    target_ = target[indices]
+    ind = target_ == 1
+    pos_count_ = np.cumsum(ind)
+    total = pos_count_[-1]
+    pos_count_[np.logical_not(ind)] = 0
+    # print(np.logical_not(ind))
+    # print(pos_count_[np.logical_not(ind)])
+    # print(pos_count_)
+    pp = pos_count_ / total_count_
+    precision_at_i_ = np.sum(pp)
+    precision_at_i = precision_at_i_ / (total + epsilon)
+
+    return precision_at_i
+
+
+
+def shot_mAP(per_class_number, targs, preds, many_shot_thr=100, low_shot_thr=20):
+    """Returns the model's average precision for each class
+    Return:
+        ap (FloatTensor): 1xK tensor, with avg precision for each class k
+    """
+    many_shot = []
+    median_shot = []
+    low_shot = []
+    if np.size(preds) == 0:
+        return 0
+    ap = np.zeros((preds.shape[1]))
+    # compute average precision for each class
+    for k in range(preds.shape[1]):
+        # sort scores
+        scores = preds[:, k]
+        targets = targs[:, k]
+        # print (scores)
+            
+        # compute average precision
+        ap[k] = average_precision(scores, targets)
+        # if k ==0:
+        #     print("person")
+        #     print (ap[k])
+        # print (ap[k])
+        if per_class_number[k]>=many_shot_thr:
+            many_shot.append(ap[k])
+        elif per_class_number[k]<low_shot_thr:
+            low_shot.append(ap[k])
+        else:
+            median_shot.append(ap[k])
+    # print ("many_shot'number is " +str(len (many_shot)))
+    # print ("median_shot'number is " +str(len (median_shot)))
+    # print ("low_shot'number is " +str(len (low_shot)))
+    return 100 * ap.mean(), 100 *np.mean(many_shot), 100 *np.mean(median_shot), 100 *np.mean(low_shot)

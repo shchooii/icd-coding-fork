@@ -8,3 +8,4 @@ from src.models.mullenbach_models import (
 )
 from src.models.multi_res_cnn import MultiResCNN
 from src.models.plm_icd import PLMICD
+from src.models.plm_icd2 import PLMICD2
