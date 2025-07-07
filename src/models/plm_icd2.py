@@ -42,6 +42,7 @@ class PLMICD2(nn.Module):
                  **kwargs):
         super().__init__()
         
+        self.lambda_r = 0.2
         self.lambda_m = 1.0
         self.lambda_b = 1.0
         
@@ -95,23 +96,26 @@ class PLMICD2(nn.Module):
         #     reweight_func  ='rebalance',
         # )
         
-        # self.loss = ReflectiveLabelCorrectorLoss()
-        # self.loss.create_weight(cls_num_list)
-        # self.loss.num_classes = num_classes
+        self.rlc = ReflectiveLabelCorrectorLoss(num_classes=num_classes, distribution=cls_num_list)
         
         self.pfm = PriorFocalModifierLoss()
         self.pfm.create_co_occurrence_matrix(co_occurrence_matrix)
         self.pfm.create_weight(cls_num_list)
         
-        self.loss = HeadTailBalancerLoss(PFM=self.pfm)
+        self.htb = HeadTailBalancerLoss(PFM=self.pfm)
         
     def _composite_loss(self, head, tail, bal, labels):
+        loss_r = self.rlc(bal, labels)
         loss_m = self.pfm(bal, labels)          
         loss_b = self.htb(head, tail, bal, labels) 
-        return self.lambda_m*loss_m + self.lambda_b*loss_b
+        # return loss_b
+        # return self.lambda_r * loss_r + self.lambda_m * loss_m   
+        # return self.lambda_m * loss_m + self.lambda_b * loss_b
+        # return self.lambda_r * loss_r + self.lambda_b * loss_b
+        return self.lambda_r * loss_r + self.lambda_m * loss_m + self.lambda_b * loss_b
 
     def get_loss(self, head, tail, bal, targets):
-        return self.loss(head, tail, bal, targets)
+        return self._composite_loss(head, tail, bal, targets)
 
     def training_step(self, batch) -> dict[str, torch.Tensor]:
         data, targets, attention_mask = batch.data, batch.targets, batch.attention_mask

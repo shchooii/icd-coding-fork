@@ -34,7 +34,7 @@ from src.losses.rlc import ReflectiveLabelCorrectorLoss
 
 class PLMICD(nn.Module):
     def __init__(self, num_classes: int, model_path: str,
-                 cls_num_list, 
+                 cls_num_list = None, 
                  head_idx = None, tail_idx = None,
                  co_occurrence_matrix = None,
                  class_freq = None, neg_class_freq = None,
@@ -53,7 +53,9 @@ class PLMICD(nn.Module):
             projection_size=self.config.hidden_size,
             num_classes=num_classes,
         )
-        # self.loss = torch.nn.BCEWithLogitsLoss()
+        
+        
+        # self.loss = torch.nn.functional.binary_cross_entropy_with_logits
         
         # self.loss = FocalLoss()
         
@@ -76,8 +78,7 @@ class PLMICD(nn.Module):
         # )
         
         # self.loss = ReflectiveLabelCorrectorLoss(num_classes=num_classes, distribution=cls_num_list)
-        
-
+    
     def get_loss(self, logits, targets):
         return self.loss(logits, targets)
 

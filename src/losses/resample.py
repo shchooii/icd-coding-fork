@@ -74,8 +74,8 @@ class ResampleLoss(nn.Module):
         self.CB_mode = CB_loss['CB_mode']
         
         self.eps = 1e-8
-        self.class_freq = class_freq.clamp_min(self.eps)
-        self.neg_class_freq = neg_class_freq.clamp_min(self.eps)
+        self.class_freq = class_freq.clamp_min(self.eps).cuda()
+        self.neg_class_freq = neg_class_freq.clamp_min(self.eps).cuda()
         self.num_classes = self.class_freq.shape[0]
         self.train_num = self.class_freq[0] + self.neg_class_freq[0]
         # regularization params

@@ -4,12 +4,13 @@ import os
 import json
 import numpy as np
 from pathlib import Path
-
+from contextlib import contextmanager
 
 import hydra
 import torch
 from omegaconf import OmegaConf
 from rich.pretty import pprint
+import torch, subprocess, re, logging
 
 from src.data.data_pipeline import data_pipeline
 from src.factories import (
@@ -72,7 +73,7 @@ def build_co_occurrence_matrix(
             idxs = label_transform.get_indices(raw).to(dev) 
             if idxs.numel():                                  
                 counts[idxs[:, None], idxs] += 1.0
-
+    counts.fill_diagonal_(0)
     return counts.cpu().numpy().astype(np.float32)
 
 
@@ -81,7 +82,7 @@ def compute_class_stats(
     label_transform,
     split: str = "train",
     *,
-    device: str | torch.device = "cuda",
+    device: str | torch.device = "cpu",
 ):
     samples = getattr(data, split)
     C   = label_transform.num_classes
@@ -171,17 +172,7 @@ def main(cfg: OmegaConf) -> None:
         label_transform=label_transform,
         text_transform=text_transform,
     )
-    
-    datasets = get_datasets(
-        config=cfg.dataset,
-        data=data,
-        text_transform=text_transform,
-        label_transform=label_transform,
-        lookups=lookups,
-    )
 
-    dataloaders = get_dataloaders(config=cfg.dataloader, datasets_dict=datasets)
-    
     cls_num_list = get_cls_num_list(data, label_transform)
     # file_path = 'cls_num_list.txt'
     # with open(file_path, 'w') as file:
@@ -192,9 +183,9 @@ def main(cfg: OmegaConf) -> None:
     # np.save("co_occurrence_matrix.npy", co_occurrence_matrix)
     
     class_freq, neg_class_freq = compute_class_stats(data, label_transform)
-    del data.df
     
     head_idx, tail_idx = get_head_tail_indices(label_transform)
+        
 
     model = get_model(
         config=cfg.model, data_info=lookups.data_info, text_encoder=text_encoder, 
@@ -214,6 +205,16 @@ def main(cfg: OmegaConf) -> None:
         code_system2code_indices=lookups.code_system2code_indices,
         split2code_indices=lookups.split2code_indices,
     ) 
+    
+    datasets = get_datasets(
+        config=cfg.dataset,
+        data=data,
+        text_transform=text_transform,
+        label_transform=label_transform,
+        lookups=lookups,
+    )
+
+    dataloaders = get_dataloaders(config=cfg.dataloader, datasets_dict=datasets)
     
     optimizer = get_optimizer(config=cfg.optimizer, model=model)
     accumulate_grad_batches = int(
@@ -246,7 +247,7 @@ def main(cfg: OmegaConf) -> None:
 
     if cfg.load_model:
         trainer.experiment_path = Path(cfg.load_model)
-
+    
     trainer.fit()
 
 

@@ -10,7 +10,7 @@ class ReflectiveLabelCorrectorLoss(nn.Module):
         num_classes: int,
         distribution,
         tau: float = 0.7,
-        compute_epoch: int = 1,
+        compute_epoch: int = 2,
         margin: float = 1.0,
         gamma_pos: float = 0.0,
         gamma_neg: float = 3.0,
