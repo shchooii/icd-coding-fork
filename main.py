@@ -104,11 +104,13 @@ def get_head_tail_indices(label_transform):
 
     head_codes = list(ht_dict["head"].keys())
     tail_codes = list(ht_dict["tail"].keys())
+    medium_codes = list(ht_dict["medium"].keys())
 
     head_idx = label_transform.get_indices(head_codes)
     tail_idx = label_transform.get_indices(tail_codes)
+    medium_idx = label_transform.get_indices(medium_codes)
 
-    return head_idx, tail_idx
+    return head_idx, tail_idx, medium_idx
 
 
 def deterministic() -> None:
@@ -184,7 +186,7 @@ def main(cfg: OmegaConf) -> None:
     
     class_freq, neg_class_freq = compute_class_stats(data, label_transform)
     
-    head_idx, tail_idx = get_head_tail_indices(label_transform)
+    head_idx, tail_idx, medium_idx = get_head_tail_indices(label_transform)
         
 
     model = get_model(
@@ -231,7 +233,7 @@ def main(cfg: OmegaConf) -> None:
         num_training_steps=num_training_steps,
     )
     callbacks = get_callbacks(config=cfg.callbacks)
-
+    
     trainer = Trainer(
         config=cfg,
         data=data,
@@ -243,6 +245,7 @@ def main(cfg: OmegaConf) -> None:
         lr_scheduler=lr_scheduler,
         lookups=lookups,
         accumulate_grad_batches=accumulate_grad_batches,
+        label_transform=label_transform
     ).to(device)
 
     if cfg.load_model:

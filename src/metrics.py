@@ -199,11 +199,19 @@ class MetricCollection:
     def copy(self):
         return deepcopy(self)
 
-    def set_threshold(self, threshold: float):
+    def set_threshold(self, threshold: float | torch.Tensor):
         for metric in self.metrics:
-            if hasattr(metric, "threshold"):
+            if not hasattr(metric, "threshold"):
+                continue
+            if isinstance(threshold, torch.Tensor) and threshold.numel() > 1:
+                if metric.filter_codes and self.code_indices is not None:
+                    idx = self.code_indices.to(threshold.device, non_blocking=True)
+                    vec = threshold[idx]
+                else:
+                    vec = threshold
+                metric.threshold = vec.clone().to(metric.device)
+            else:
                 metric.threshold = threshold
-
 
 """ ------------Classification Metrics-------------"""
 
@@ -488,6 +496,7 @@ class F1Score(Metric):
 
     def update(self, batch: dict):
         logits, targets = detach(batch["logits"]), detach(batch["targets"])
+        
         predictions = (logits > self.threshold).long()
         self._tp += torch.sum((predictions) * (targets), dim=0)
         self._fp += torch.sum(predictions * (1 - targets), dim=0)

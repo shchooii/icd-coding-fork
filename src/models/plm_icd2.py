@@ -30,7 +30,7 @@ from src.losses.pfm import PriorFocalModifierLoss
 from src.losses.resample import ResampleLoss
 from src.losses.rlc import ReflectiveLabelCorrectorLoss
 from src.losses.htb import HeadTailBalancerLoss
-
+from src.losses.mfm import MultiGrainedFocalLoss
 
 
 class PLMICD2(nn.Module):
@@ -98,16 +98,19 @@ class PLMICD2(nn.Module):
         
         self.rlc = ReflectiveLabelCorrectorLoss(num_classes=num_classes, distribution=cls_num_list)
         
-        self.pfm = PriorFocalModifierLoss()
-        self.pfm.create_co_occurrence_matrix(co_occurrence_matrix)
-        self.pfm.create_weight(cls_num_list)
+        # self.pfm = PriorFocalModifierLoss()
+        # self.pfm.create_co_occurrence_matrix(co_occurrence_matrix)
+        # self.pfm.create_weight(cls_num_list)
         
-        self.htb = HeadTailBalancerLoss(PFM=self.pfm)
+        self.mfm = MultiGrainedFocalLoss()
+        self.mfm.create_weight(cls_num_list) 
+        self.htb = HeadTailBalancerLoss(PFM=self.mfm)
         
     def _composite_loss(self, head, tail, bal, labels):
         loss_r = self.rlc(bal, labels)
-        loss_m = self.pfm(bal, labels)          
+        loss_m = self.mfm(bal, labels)          
         loss_b = self.htb(head, tail, bal, labels) 
+        # return loss_r
         # return loss_b
         # return self.lambda_r * loss_r + self.lambda_m * loss_m   
         # return self.lambda_m * loss_m + self.lambda_b * loss_b

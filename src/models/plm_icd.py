@@ -28,7 +28,10 @@ from src.losses.asl import AsymmetricLoss
 from src.losses.mfm import MultiGrainedFocalLoss
 from src.losses.pfm import PriorFocalModifierLoss
 from src.losses.resample import ResampleLoss
+from src.losses.dr import DRLoss
 from src.losses.rlc import ReflectiveLabelCorrectorLoss
+from src.losses.apl import APLLoss
+from src.losses.ral import Ralloss
 
 
 
@@ -55,20 +58,20 @@ class PLMICD(nn.Module):
         )
         
         
-        # self.loss = torch.nn.functional.binary_cross_entropy_with_logits
+        self.loss = torch.nn.functional.binary_cross_entropy_with_logits
         
         # self.loss = FocalLoss()
         
         # self.loss = Hill()
-        
+
         # self.loss = AsymmetricLoss()
         
         # self.loss = MultiGrainedFocalLoss()
         # self.loss.create_weight(cls_num_list)
         
-        self.loss = PriorFocalModifierLoss()
-        self.loss.create_co_occurrence_matrix(co_occurrence_matrix)
-        self.loss.create_weight(cls_num_list)
+        # self.loss = PriorFocalModifierLoss()
+        # self.loss.create_co_occurrence_matrix(co_occurrence_matrix)
+        # self.loss.create_weight(cls_num_list)
         
         # self.loss = ResampleLoss(
         #     use_sigmoid    = True,
@@ -76,6 +79,19 @@ class PLMICD(nn.Module):
         #     neg_class_freq = neg_class_freq,
         #     reweight_func  ='rebalance',
         # )
+        
+        # self.loss = ResampleLoss( # CB Loss
+        #     use_sigmoid=True,                 
+        #     reweight_func='CB',                             
+        #     class_freq=class_freq,
+        #     neg_class_freq=neg_class_freq
+        # )
+        
+        # self.loss = DRLoss()
+        
+        # self.loss = APLLoss()
+        
+        # self.loss = Ralloss()
         
         # self.loss = ReflectiveLabelCorrectorLoss(num_classes=num_classes, distribution=cls_num_list)
     

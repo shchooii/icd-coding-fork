@@ -24,7 +24,7 @@ class ResampleLoss(nn.Module):
                  ),
                  CB_loss=dict(
                      CB_beta=0.9,
-                     CB_mode='average_w'  # 'by_class', 'average_n', 'average_w', 'min_n'
+                     CB_mode='by_class'  # 'by_class', 'average_n', 'average_w', 'min_n'
                  ),
                  map_param=dict(
                      alpha=10.0,
@@ -164,18 +164,18 @@ class ResampleLoss(nn.Module):
 
     def CB_weight(self, gt_labels):
         if  'by_class' in self.CB_mode:
-            weight = torch.tensor((1 - self.CB_beta)).cuda() / \
-                     (1 - torch.pow(self.CB_beta, self.class_freq)).cuda()
+            base = (1 - self.CB_beta) / (1 - torch.pow(self.CB_beta, self.class_freq.clamp_min(1.)))
+            weight = base.cuda().unsqueeze(0).expand_as(gt_labels)
         elif 'average_n' in self.CB_mode:
-            avg_n = torch.sum(gt_labels * self.class_freq, dim=1, keepdim=True) / \
-                    torch.sum(gt_labels, dim=1, keepdim=True)
-            weight = torch.tensor((1 - self.CB_beta)).cuda() / \
-                     (1 - torch.pow(self.CB_beta, avg_n)).cuda()
+            denom = torch.sum(gt_labels, dim=1, keepdim=True).clamp_min(self.eps)
+            avg_n = torch.sum(gt_labels * self.class_freq, dim=1, keepdim=True) / denom
+            weight = (1 - self.CB_beta) / (1 - torch.pow(self.CB_beta, avg_n.clamp_min(1.)))
         elif 'average_w' in self.CB_mode:
-            weight_ = torch.tensor((1 - self.CB_beta)).cuda() / \
-                      (1 - torch.pow(self.CB_beta, self.class_freq)).cuda()
-            weight = torch.sum(gt_labels * weight_, dim=1, keepdim=True) / \
-                     torch.sum(gt_labels, dim=1, keepdim=True)
+            base = (1 - self.CB_beta) / (1 - torch.pow(self.CB_beta,
+                                                   self.class_freq.clamp_min(self.eps)))
+            base = base.cuda()
+            denom = torch.sum(gt_labels, dim=1, keepdim=True).clamp_min(self.eps)
+            weight = torch.sum(gt_labels * base, dim=1, keepdim=True) / denom
         elif 'min_n' in self.CB_mode:
             min_n, _ = torch.min(gt_labels * self.class_freq +
                                  (1 - gt_labels) * 100000, dim=1, keepdim=True)
