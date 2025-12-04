@@ -77,7 +77,7 @@ class ResampleLoss(nn.Module):
         self.class_freq = class_freq.clamp_min(self.eps).cuda()
         self.neg_class_freq = neg_class_freq.clamp_min(self.eps).cuda()
         self.num_classes = self.class_freq.shape[0]
-        self.train_num = self.class_freq[0] + self.neg_class_freq[0]
+        self.train_num = (self.class_freq + self.neg_class_freq).mean()
         # regularization params
         self.logit_reg = logit_reg
         self.neg_scale = logit_reg['neg_scale'] if 'neg_scale' in logit_reg else 1.0

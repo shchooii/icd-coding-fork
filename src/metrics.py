@@ -46,8 +46,22 @@ class Metric:
 
     def to(self, device: str):
         self.device = device
-        if self.threshold is not None:
-            self.threshold = torch.tensor(self.threshold).clone().to(device)
+
+        thr = getattr(self, "threshold", None)
+
+        # threshold가 설정된 경우만 디바이스/형변환
+        if thr is not None:
+            # numpy -> torch
+            if isinstance(thr, np.ndarray):
+                thr = torch.from_numpy(thr)
+
+            if isinstance(thr, torch.Tensor):
+                self.threshold = thr.to(device=device, dtype=torch.float32).clone()
+            else:
+                # 스칼라(int/float/np.number 등)
+                self.threshold = torch.tensor(float(thr), dtype=torch.float32, device=device)
+
+        # 임계값이 없는(metric별로 필요 없는) 경우는 그대로 둔다
         self.reset()
         return self
 
@@ -64,9 +78,11 @@ class MetricCollection:
         metrics: list[Metric],
         code_indices: Optional[torch.Tensor] = None,
         code_system_name: Optional[str] = None,
+        code_ids: Optional[list[str]] = None
     ):
         self.metrics = metrics
         self.code_system_name = code_system_name
+        self.code_ids = code_ids
         if code_indices is not None:
             # Get overlapping indices
             self.code_indices = code_indices.clone()
@@ -108,7 +124,7 @@ class MetricCollection:
 
     def filter_tensor(
         self, tensor: torch.Tensor, code_indices: torch.Tensor
-    ) -> list[torch.Tensor]:
+    ) -> torch.Tensor:
         if code_indices is None:
             return tensor
         return torch.index_select(tensor, -1, code_indices)
@@ -175,13 +191,13 @@ class MetricCollection:
                         logits=logits, targets=targets
                     )
 
-            metric_dict.update(
-                {
-                    metric.name: metric.compute(logits=logits, targets=targets)
-                    for metric in self.metrics
-                    if not metric.batch_update and (metric.name not in metric_dict)
-                }
-            )
+            # metric_dict.update(
+            #     {
+            #         metric.name: metric.compute(logits=logits, targets=targets)
+            #         for metric in self.metrics
+            #         if not metric.batch_update and (metric.name not in metric_dict)
+            #     }
+            # )
         self.update_best_metrics(metric_dict)
         return metric_dict
 
@@ -199,19 +215,63 @@ class MetricCollection:
     def copy(self):
         return deepcopy(self)
 
-    def set_threshold(self, threshold: float | torch.Tensor):
+    def set_threshold(self, threshold):
+        """
+        threshold:
+          - float (스칼라)              → 모든 메트릭 동일 임계값
+          - torch.Tensor / np.ndarray  → (가능하면) 벡터로 세팅 (코드 인덱스 기반)
+          - dict[str, float]           → 코드 문자열 기반으로 현재 스플릿 벡터를 생성하여 세팅
+        """
+        import numpy as np
+        if isinstance(threshold, dict):
+            # ★ 코드 문자열 기반 매핑
+            if self.code_ids is None:
+                raise ValueError("set_threshold(dict): code_ids가 필요합니다.")
+            # 스플릿 길이만큼 벡터 만들고, 없는 코드는 default로 채움
+            default_thr = 0.5
+            vec = torch.full((len(self.code_ids),), default_thr, dtype=torch.float32)
+            for i, code in enumerate(self.code_ids):
+                if code in threshold:
+                    vec[i] = float(threshold[code])
+
+            # 디바이스/형 변환 & 각 metric에 주입
+            for metric in self.metrics:
+                if not hasattr(metric, "threshold"):
+                    continue
+                metric.threshold = vec.clone().to(metric.device)
+            return
+
+        # numpy → torch
+        if isinstance(threshold, np.ndarray):
+            threshold = torch.from_numpy(threshold)
+
+        # 스칼라
+        if not isinstance(threshold, torch.Tensor) or threshold.numel() == 1:
+            thr_scalar = float(threshold) if not isinstance(threshold, torch.Tensor) else float(threshold.item())
+            for metric in self.metrics:
+                if hasattr(metric, "threshold"):
+                    metric.threshold = thr_scalar
+            return
+
+        # 벡터(인덱스 기반): code_indices가 있다면 슬라이스, 없다면 그대로
+        thr_vec: torch.Tensor = threshold.detach()
         for metric in self.metrics:
             if not hasattr(metric, "threshold"):
                 continue
-            if isinstance(threshold, torch.Tensor) and threshold.numel() > 1:
-                if metric.filter_codes and self.code_indices is not None:
-                    idx = self.code_indices.to(threshold.device, non_blocking=True)
-                    vec = threshold[idx]
+            vec = thr_vec
+            if metric.filter_codes and self.code_indices is not None:
+                idx = self.code_indices.to(vec.device, non_blocking=True)
+                if vec.dim() == 1 and vec.numel() == idx.numel():
+                    # 이미 split 크기라면 그대로
+                    pass
+                elif vec.dim() == 1 and vec.numel() >= getattr(metric, "number_of_classes", vec.numel()):
+                    # 전체 라벨 기준이면 인덱싱
+                    vec = vec.index_select(0, idx)
                 else:
-                    vec = threshold
-                metric.threshold = vec.clone().to(metric.device)
-            else:
-                metric.threshold = threshold
+                    raise ValueError(
+                        f"Threshold vector length ({vec.numel()})가 split({idx.numel()})/full 중 어떤 것과도 안 맞습니다."
+                    )
+            metric.threshold = vec.clone().to(metric.device).float()
 
 """ ------------Classification Metrics-------------"""
 

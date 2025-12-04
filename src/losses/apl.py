@@ -16,7 +16,7 @@ class APLLoss(nn.Module):
         self.epsilon_neg = 0.0
         self.epsilon_pos_pow = -2.5
 
-    def forward(self, x, y):
+    def forward(self, x, y, reduction: str = "mean"):
         """"
         x: input logits with size (batch_size, number of labels).
         y: binarized multi-label targets with size (batch_size, number of labels).
@@ -44,4 +44,12 @@ class APLLoss(nn.Module):
                 one_sided_gamma = (self.gamma_pos) * y + self.gamma_neg  * (1 - y)
                 one_sided_w = torch.pow(1 - pt, one_sided_gamma)
             loss = loss * one_sided_w
+        # loss = -loss
+        # if reduction == "none":
+        #     return loss             # (B, C)
+        # elif reduction == "sum":
+        #     return loss.sum()
+        # else:  # "mean"
+        #     return loss.mean()
+        
         return -loss.sum()

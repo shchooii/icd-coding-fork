@@ -2,12 +2,12 @@
 defaults:
   - override /model: plm_icd2
   - override /text_encoder: defaults
-  - override /data: mimiciv_icd10
+  - override /data: mimiciv_full_icd10
   - override /lr_scheduler: warmup_linear_decay
   - override /dataset: huggingface
   - override /text_transform: huggingface
   - override /optimizer: adamw
-  - override /callbacks: mean_average_precision
+  - override /callbacks: auc_macro
   
 
 dataloader: 
@@ -22,7 +22,7 @@ optimizer:
 
 trainer:
   threshold_tuning: true
-  epochs: 20
+  epochs: 100
   
 data.max_length: 4000
 

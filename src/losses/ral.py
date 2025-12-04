@@ -19,12 +19,16 @@ class Ralloss(nn.Module):
         self.margin = 1.0
         self.lamb = lamb
 
-    def forward(self, x, y):
+    def forward(self, x, y, reduction: str = "mean"):
         """"
         x: input logits with size (batch_size, number of labels).
         y: binarized multi-label targets with size (batch_size, number of labels).
         """
         # Calculating Probabilities
+        
+        x = torch.nan_to_num(x, nan=0.0, posinf=30.0, neginf=-30.0).to(torch.float32)
+        y = y.clamp(0, 1).to(torch.float32)
+        
         x_sigmoid = torch.sigmoid(x)
         xs_pos = x_sigmoid
         xs_neg = 1 - x_sigmoid
@@ -59,4 +63,12 @@ class Ralloss(nn.Module):
 
             loss = loss * one_sided_w
         return -loss.sum()
+        
+        # loss = -loss
+        # if reduction == "none":
+        #     return loss             # (B, C)
+        # elif reduction == "sum":
+        #     return loss.sum()
+        # else:  # "mean"
+        #     return loss.mean()
     

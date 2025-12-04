@@ -3,6 +3,7 @@ import functools
 import torch.nn.functional as F
 import numpy as np
 
+
 def reduce_loss(loss, reduction):
     """Reduce loss as specified.
 
@@ -21,7 +22,8 @@ def reduce_loss(loss, reduction):
         return loss.mean()
     elif reduction_enum == 2:
         return loss.sum()
-
+    
+    
 
 def weight_reduce_loss(loss, weight=None, reduction='mean', avg_factor=None):
     """Apply element-wise weight and reduce loss.

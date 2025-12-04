@@ -33,6 +33,8 @@ from src.losses.htb import HeadTailBalancerLoss
 from src.losses.mfm import MultiGrainedFocalLoss
 
 
+
+
 class PLMICD2(nn.Module):
     def __init__(self, num_classes: int, model_path: str,
                  cls_num_list, 
@@ -74,6 +76,15 @@ class PLMICD2(nn.Module):
         self.register_buffer("tail_idx", torch.tensor(tail_idx))
         self.num_classes = num_classes
         
+        # if class_freq is not None:
+        #     class_mask = (torch.as_tensor(class_freq, dtype=torch.float32) > 0).to(torch.float32)  # (C,)
+        # else:
+        #     class_mask = torch.ones(num_classes, dtype=torch.float32)
+        # self.register_buffer("class_mask", class_mask)  # shape: (C,)
+
+        # # [ADDED] 마스킹 시 사용할 고정 음수 로짓(grad/손실 억제)
+        # self.neg_logit_const = -30.0
+        
         # self.loss = torch.nn.BCEWithLogitsLoss()
         
         # self.loss = FocalLoss()
@@ -105,7 +116,26 @@ class PLMICD2(nn.Module):
         self.mfm = MultiGrainedFocalLoss()
         self.mfm.create_weight(cls_num_list) 
         self.htb = HeadTailBalancerLoss(PFM=self.mfm)
-        
+    
+    # def _apply_train_mask(self,
+    #                   head: torch.Tensor,
+    #                   tail: torch.Tensor,
+    #                   bal:  torch.Tensor,
+    #                   labels: torch.Tensor):
+    #     """
+    #     head/tail/bal: (B, C), labels: (B, C)
+    #     class_mask m:  (C,), train에서만 적용
+    #     """
+    #     if self.class_mask is None:
+    #         return head, tail, bal, labels
+
+    #     m = self.class_mask.unsqueeze(0)  # (1, C)
+    #     head_m = head * m + self.neg_logit_const * (1.0 - m)
+    #     tail_m = tail * m + self.neg_logit_const * (1.0 - m)
+    #     bal_m  = bal  * m + self.neg_logit_const * (1.0 - m)
+    #     labels_m = labels * m
+    #     return head_m, tail_m, bal_m, labels_m
+ 
     def _composite_loss(self, head, tail, bal, labels):
         loss_r = self.rlc(bal, labels)
         loss_m = self.mfm(bal, labels)          

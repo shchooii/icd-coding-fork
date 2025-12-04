@@ -12,4 +12,4 @@
     split: val
     target: all
     metric: auc_macro # 수정
-    patience: 20
+    patience: 10

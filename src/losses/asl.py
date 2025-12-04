@@ -12,14 +12,7 @@ class AsymmetricLoss(nn.Module):
         self.eps = eps
 
 
-    def forward(self, x, y):
-        """"
-        Parameters
-        ----------
-        x: input logits
-        y: targets (multi-label binarized vector)
-        """
-
+    def forward(self, x, y, reduction="mean"):
 
         # Calculating Probabilities
         x_sigmoid = torch.pow(torch.sigmoid(x),1) 
@@ -45,6 +38,13 @@ class AsymmetricLoss(nn.Module):
                 one_sided_w = torch.pow(1 - pt, one_sided_gamma)
 
             loss = loss * one_sided_w
+        # loss = -loss
+        # if reduction == "none":
+        #     return loss             # (B, C)
+        # elif reduction == "sum":
+        #     return loss.sum()
+        # else:  # "mean"
+        #     return loss.mean()
         return -loss.sum()
     
 def create_loss(gamma_neg=4, gamma_pos=0, clip=0.05, disable_torch_grad_focal_loss=True, distribution_path=None):

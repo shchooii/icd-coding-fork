@@ -38,7 +38,7 @@ class MultiGrainedFocalLoss(nn.Module):
         self.co_occurrence_matrix = co_occurrence_matrix / co_occurrence_matrix.sum(axis=0)
 
 
-    def forward(self, x, y):
+    def forward(self, x, y, reduction="mean"):
         
         weight = self.weight.to(dtype=x.dtype, device=x.device)
 
@@ -68,5 +68,12 @@ class MultiGrainedFocalLoss(nn.Module):
 
             loss = loss * one_sided_w
 
+        # loss = -loss
+        # if reduction == "none":
+        #     return loss             # (B, C)
+        # elif reduction == "sum":
+        #     return loss.sum()
+        # else:  # "mean"
+        #     return loss.mean()
         loss =- loss.sum()
         return loss

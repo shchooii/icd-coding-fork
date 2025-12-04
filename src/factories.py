@@ -246,6 +246,7 @@ def get_metric_collection(
     code_system_code_indices: Optional[torch.Tensor] = None,
     split_code_indices: Optional[torch.Tensor] = None,
     code_system_name: Optional[str] = None,
+    code_ids: Optional[list[str]] = None,
 ) -> metrics.MetricCollection:
     metric_list = []
     for metric in config:
@@ -270,7 +271,15 @@ def get_metric_collection(
         metrics=metric_list,
         code_indices=code_indices,
         code_system_name=code_system_name,
+        code_ids=code_ids,
     )
+    
+def ids_from_indices(all_code_ids: list[str],
+                     idx: Optional[torch.Tensor]) -> Optional[list[str]]:
+    if idx is None:
+        return all_code_ids  # 전체 사용(혹은 None 반환해도 됨)
+    # idx는 1D LongTensor라고 가정
+    return [all_code_ids[i] for i in idx.cpu().tolist()]
 
 
 def get_metric_collections(
@@ -280,6 +289,7 @@ def get_metric_collections(
     splits_with_multiple_code_systems: set[str] = {"train_val", "val", "test"},
     code_system2code_indices: dict[str, torch.Tensor] = None,
     split2code_indices: dict[str, torch.Tensor] = None,
+    all_code_ids: Optional[list[str]] = None,
 ) -> dict[str, dict[str, metrics.MetricCollection]]:
     metric_collections = defaultdict(dict)
     for split_name in split_names:
@@ -287,11 +297,15 @@ def get_metric_collections(
             split_code_indices = split2code_indices.get(split_name)
         else:
             split_code_indices = None
-
+            
+        # ★ split level code_ids (코드 문자열 리스트)
+        split_code_ids = ids_from_indices(all_code_ids, split_code_indices) if all_code_ids is not None else None
+        
         metric_collections[split_name]["all"] = get_metric_collection(
             config=config,
             number_of_classes=number_of_classes,
             split_code_indices=split_code_indices,
+            code_ids=split_code_ids,
         )
 
         if split_name not in splits_with_multiple_code_systems:
@@ -304,12 +318,14 @@ def get_metric_collections(
             code_system_name,
             code_system_code_indices,
         ) in code_system2code_indices.items():
+            code_system_code_ids = ids_from_indices(all_code_ids, code_system_code_indices) if all_code_ids is not None else None
             metric_collections[split_name][code_system_name] = get_metric_collection(
                 config=config,
                 number_of_classes=number_of_classes,
                 code_system_code_indices=code_system_code_indices,
                 split_code_indices=split_code_indices,
                 code_system_name=code_system_name,
+                code_ids=code_system_code_ids,
             )
 
     return metric_collections

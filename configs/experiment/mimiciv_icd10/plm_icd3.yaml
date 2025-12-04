@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - override /model: plm_icd2
+  - override /model: plm_icd3
   - override /text_encoder: defaults
   - override /data: mimiciv_icd10
   - override /lr_scheduler: warmup_linear_decay
@@ -11,7 +11,7 @@ defaults:
   
 
 dataloader: 
-  max_batch_size: 2
+  max_batch_size: 4
   batch_size: 16
 
 optimizer:
@@ -25,6 +25,4 @@ trainer:
   epochs: 20
   
 data.max_length: 4000
-
-
 

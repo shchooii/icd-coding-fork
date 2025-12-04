@@ -18,7 +18,7 @@ from src.models import BaseModel
 from src.settings import ID_COLUMN, TARGET_COLUMN
 from src.trainer.callbacks import BaseCallback
 from src.utils.decision_boundary import f1_score_db_tuning
-from src.utils.visualize import plot_per_class_best_threshold
+# from src.utils.visualize import plot_per_class_best_threshold
 
 
 class Trainer:
@@ -278,11 +278,11 @@ class Trainer:
             self.save_predictions(
                 split_name=split_name, logits=logits, targets=targets, ids=ids
             )
-            plot_per_class_best_threshold(
-                logits=logits,
-                targets=targets,
-                label_transform=self.label_transform
-            )
+            # plot_per_class_best_threshold(
+            #     logits=logits,
+            #     targets=targets,
+            #     label_transform=self.label_transform
+            # )
 
 
     def save_predictions(
