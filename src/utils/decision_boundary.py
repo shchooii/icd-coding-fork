@@ -31,7 +31,7 @@ def best_f1_per_class_sklearn(logits: torch.Tensor,
 
     return best_f1, best_thr
 
-def f1_score_db_tuning(logits, targets, groups, average="micro", type="per_group"):
+def f1_score_db_tuning(logits, targets, groups, average="micro", type="single"):
     device, dtype = logits.device, logits.dtype
     if average not in ["micro", "macro"]: 
         raise ValueError("Average must be either 'micro' or 'macro'")

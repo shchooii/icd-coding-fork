@@ -19,6 +19,7 @@ class MultiGrainedFocalLoss(nn.Module):
         self.disable_torch_grad_focal_loss = disable_torch_grad_focal_loss
         self.eps = eps
         self.distribution_path = distribution_path
+        self.register_buffer("weight", None, persistent=True)
 
         # self.spls_loss = SPLC(batch_size=32)
 

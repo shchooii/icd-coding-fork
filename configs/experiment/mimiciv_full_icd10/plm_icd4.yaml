@@ -1,0 +1,30 @@
+# @package _global_
+defaults:
+  - override /model: plm_icd4
+  - override /text_encoder: defaults
+  - override /data: mimiciv_full_icd10
+  - override /lr_scheduler: warmup_linear_decay
+  - override /dataset: huggingface
+  - override /text_transform: huggingface
+  - override /optimizer: adamw
+  - override /callbacks: auc_macro
+  
+
+dataloader: 
+  max_batch_size: 2
+  batch_size: 16
+
+optimizer:
+  configs:
+    lr: 5e-5
+    weight_decay: 0
+    
+
+trainer:
+  threshold_tuning: true
+  epochs: 100
+  
+data.max_length: 4000
+
+
+
